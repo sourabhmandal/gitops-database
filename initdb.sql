@@ -12,7 +12,6 @@ CREATE USER replicator REPLICATION PASSWORD '${POSTGRES_REPLICATION_PASSWORD}';
 -- Create the schema if it doesn't already exist
 CREATE SCHEMA IF NOT EXISTS supareel;
 -- Install extensions
-CREATE EXTENSION IF NOT EXISTS "system_stats";
 CREATE EXTENSION IF NOT EXISTS "pg_stat_statements";
 
 -- Create the users table if it doesn't already exist
