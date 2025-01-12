@@ -1,0 +1,81 @@
+services:
+  postgres_primary:
+    build:
+      context: .
+      dockerfile: postgres.dockerfile
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_SCHEMA: ${POSTGRES_SCHEMA}
+      WALG_S3_PREFIX: "s3://${AWS_S3_BUCKET}/dbbackups/"
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      AWS_REGION: ${AWS_REGION}
+      WALG_COMPRESSION_METHOD: "lz4"
+      WALG_LOG_LEVEL: "NORMAL"
+      PGDATA: "/var/lib/postgresql/data"
+      AWS_ENDPOINT: "s3.amazonaws.com"
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    networks:
+      - pg_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  postgres_read:  
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER_READ}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD_READ}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_REPLICATION_MODE: slave
+      POSTGRES_MASTER_HOST: postgres_primary
+      POSTGRES_MASTER_PORT: 5432
+      POSTGRES_MASTER_USER: ${POSTGRES_USER}
+      POSTGRES_MASTER_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "5433:5432"
+    volumes:
+      - pg_replica_data:/var/lib/postgresql/data
+      - ./initdb.sql:/docker-entrypoint-initdb.d/initdb.sql
+    networks:
+      - pg_network
+    depends_on:
+      postgres_primary:
+        condition: service_healthy
+
+  caddy:
+    build:
+      context: .
+      dockerfile:
+        caddy.dockerfile
+    container_name: caddy
+    restart: unless-stopped
+    environment:
+      - CADDY_EMAIL=${CADDY_EMAIL}  # For TLS certificates
+      - CLOUDFLARE_API_TOKEN=${CLOUDFLARE_API_TOKEN}  # For DNS challenge
+    ports:
+      - "80:80"   # HTTP
+      - "443:443" # HTTPS
+
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+    networks:
+      - pg_network
+    depends_on:
+      - postgres_primary
+      - postgres_read
+
+volumes:
+  pg_data:
+  pg_replica_data:
+
+networks:
+  pg_network:
+    driver: bridge

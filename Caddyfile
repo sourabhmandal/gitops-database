@@ -1,0 +1,30 @@
+{
+  email {env.CADDY_EMAIL}
+  debug
+}
+
+pgprimary.supareel.com:5432 {
+  reverse_proxy postgres_primary:5432 {
+    transport http {
+      dial_timeout 10s
+      tls_insecure_skip_verify
+    }
+  }
+
+  tls {
+    dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+  }
+}
+
+pgread.supareel.com:5433 {
+  reverse_proxy postgres_read:5433 {
+    transport http {
+      dial_timeout 10s
+      tls_insecure_skip_verify
+    }
+  }
+
+  tls {
+    dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+  }
+}
