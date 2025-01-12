@@ -1,5 +1,6 @@
 FROM golang:1.22-alpine AS builder
 
+# Install dependencies for building WAL-G
 RUN apk add --no-cache git build-base
 RUN git clone https://github.com/wal-g/wal-g.git
 WORKDIR /go/wal-g
@@ -7,10 +8,16 @@ RUN make install && make deps && make pg_build
 
 FROM postgres:17-alpine
 
-# Install necessary packages and PostgreSQL extensions
-RUN apk add --no-cache ca-certificates lzo bash postgresql-contrib
+# Install necessary packages including postgresql-contrib
+RUN apk add --no-cache \
+  ca-certificates \
+  lzo \
+  bash \
+  git \
+  postgresql-contrib \
+  postgresql-dev
 
-# Copy WAL-G binary from the builder image
+# Install WAL-G
 COPY --from=builder /go/wal-g/main/pg/wal-g /usr/local/bin/wal-g
 RUN chmod +x /usr/local/bin/wal-g
 
