@@ -20,6 +20,7 @@ services:
       - "5432:5432"
     volumes:
       - pg_data:/var/lib/postgresql/data
+      - ./initdb.sql:/docker-entrypoint-initdb.d/initdb.sql
     networks:
       - pg_network
     healthcheck:
@@ -43,7 +44,6 @@ services:
       - "5433:5432"
     volumes:
       - pg_replica_data:/var/lib/postgresql/data
-      - ./initdb.sql:/docker-entrypoint-initdb.d/initdb.sql
     networks:
       - pg_network
     depends_on:
