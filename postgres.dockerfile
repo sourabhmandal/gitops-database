@@ -42,4 +42,4 @@ RUN chmod +x /docker-entrypoint-initdb.d/initdb.sql
 USER postgres
 
 # Start PostgreSQL with the custom configuration
-CMD ["postgres", "-c", "config_file=/etc/postgresql/postgresql.conf"]
+CMD ["bash", "-c", "psql -f /docker-entrypoint-initdb.d/initdb.sql && postgres -c config_file=/etc/postgresql/postgresql.conf"]
