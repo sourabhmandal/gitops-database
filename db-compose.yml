@@ -17,10 +17,10 @@ services:
       PGDATA: "/var/lib/postgresql/data"
       AWS_ENDPOINT: "s3.amazonaws.com"
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - pg_data:/var/lib/postgresql/data
-      - ./initdb.sql:/docker-entrypoint-initdb.d/initdb.sql
+      - ./postgres/initdb.sql:/docker-entrypoint-initdb.d/initdb.sql
     networks:
       - pg_network
     healthcheck:
@@ -41,7 +41,7 @@ services:
       POSTGRES_MASTER_USER: ${POSTGRES_USER}
       POSTGRES_MASTER_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
-      - "5433:5432"
+      - "5432:5432"
     volumes:
       - pg_replica_data:/var/lib/postgresql/data
     networks:
@@ -49,28 +49,6 @@ services:
     depends_on:
       postgres_primary:
         condition: service_healthy
-
-  caddy:
-    build:
-      context: .
-      dockerfile:
-        caddy.dockerfile
-    container_name: caddy
-    restart: unless-stopped
-    environment:
-      - CADDY_EMAIL=${CADDY_EMAIL}  # For TLS certificates
-      - CLOUDFLARE_API_TOKEN=${CLOUDFLARE_API_TOKEN}  # For DNS challenge
-    ports:
-      - "80:80"   # HTTP
-      - "443:443" # HTTPS
-
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
-    networks:
-      - pg_network
-    depends_on:
-      - postgres_primary
-      - postgres_read
 
 volumes:
   pg_data:
